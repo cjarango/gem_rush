@@ -1,4 +1,4 @@
-from gem_data import GEM_NAMES
+from resources.gem_data import GEM_NAMES
 
 class Node:
     def __init__(self, poder):
