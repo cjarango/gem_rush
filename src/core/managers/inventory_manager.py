@@ -34,6 +34,13 @@ class InventoryManager:
         except FileNotFoundError:
             # No existe archivo, inventario queda vacío
             pass
+        
+    def total_value(self) -> int:
+        """Devuelve el valor total del inventario: suma de (poder × cantidad) de cada gema."""
+        total = 0
+        for node in self.inventory.inorder():
+            total += node.poder * node.getCantidad()
+        return total
 
     def has_saved_inventory(self) -> bool:
         """Devuelve True si hay un archivo de inventario guardado con contenido."""

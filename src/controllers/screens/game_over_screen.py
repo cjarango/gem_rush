@@ -2,7 +2,7 @@ import pygame
 from controllers.screens.screen_base import ScreenBase
 
 class GameOverScreen(ScreenBase):
-    def __init__(self, screen, change_screen_callback):
+    def __init__(self, screen, change_screen_callback, game_over_message=None):
         super().__init__(screen)
         self.change_screen_callback = change_screen_callback
 
@@ -10,6 +10,9 @@ class GameOverScreen(ScreenBase):
         self.font = pygame.font.SysFont(None, 36)
         self.COLOR_BG = (0, 0, 0)
         self.COLOR_TEXT = (255, 255, 255)
+
+        # Mensaje de Game Over personalizable
+        self.game_over_message = game_over_message or "The mimic's feast is over. You were the main course."
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:
@@ -21,24 +24,32 @@ class GameOverScreen(ScreenBase):
                 self.change_screen_callback("restart_game")  # Reiniciar juego
 
     def update(self, dt=0):  # dt opcional por compatibilidad
-        # No hay animaciones por ahora
-        pass
+        pass  # No hay animaciones por ahora
 
     def render(self):
         self.screen.fill(self.COLOR_BG)
+
+        # Título
         self.draw_multiline_text_centered(
             "GAME OVER", self.title_font, (255, 0, 0), self.screen.get_height() // 2 - 100
         )
+
+        # Mensaje principal
         self.draw_multiline_text_centered(
-            "The mimic's feast is over. You were the main course.", 
+            self.game_over_message, 
             self.font, self.COLOR_TEXT, self.screen.get_height() // 2
         )
+
+        # Espacio adicional antes de las instrucciones
+        instruction_start_y = self.screen.get_height() // 2 + 70
+
         self.draw_multiline_text_centered(
-            "Press R to restart", self.font, self.COLOR_TEXT, self.screen.get_height() // 2 + 50
+            "Press R to restart", self.font, self.COLOR_TEXT, instruction_start_y
         )
         self.draw_multiline_text_centered(
-            "Press H to return to menu", self.font, self.COLOR_TEXT, self.screen.get_height() // 2 + 90
+            "Press H to return to menu", self.font, self.COLOR_TEXT, instruction_start_y + 40
         )
+
         pygame.display.flip()
 
     def draw_multiline_text_centered(self, text, font, color, y, max_width=None, line_spacing=5):

@@ -30,18 +30,17 @@ hud = HUDController(screen, font, WIDTH, HEIGHT, COLOR_TEXT)
 # --------------------------
 current_screen = None
 
-def change_screen(screen_name):
+def change_screen(screen_name, game_over_message=None):
     global current_screen, game_manager
     if screen_name == "menu":
         current_screen = MenuScreen(screen, change_screen, game_manager)
     elif screen_name == "game":
         current_screen = GameScreen(screen, game_manager, hud, mimic_controller, change_screen)
     elif screen_name == "game_over":
-        current_screen = GameOverScreen(screen, change_screen)
+        current_screen = GameOverScreen(screen, change_screen, game_over_message)
     elif screen_name == "win":
         current_screen = WinScreen(screen, change_screen)
     elif screen_name == "restart_game":
-        # --- RESET GAME ---
         game_manager.reset_game()
         mimic_controller.player = game_manager.player
         hud.clear_messages()
@@ -49,7 +48,7 @@ def change_screen(screen_name):
     elif screen_name == "quit":
         pygame.quit()
         exit()
-
+        
 # Empezar con el menú
 change_screen("menu")
 

@@ -1,12 +1,10 @@
 import random
 from collections import defaultdict
-from views.sprites.tile_sprite_factory import TileSpriteFactory
-from views.sprites.chest_sprite_factory import ChestSpriteFactory
-from views.sprites.portal_sprite_factory import PortalSpriteFactory
+from views.sprites import TileSpriteFactory, ChestSpriteFactory, PortalSpriteFactory
 from core.managers.gem_manager import GemManager
 from core.managers.chest_manager import ChestManager
 from core.managers.portal_manager import PortalManager
-from generators.chunk_generator import ChunkGenerator
+from generators import ChunkGenerator
 
 class Map:
     def __init__(self, chunk_size, path_width_range=(1, 2), num_tree_variants=4, tile_size=32):

@@ -55,20 +55,37 @@ class Inventory(IInventory):
         elif poder > node.poder:
             node.setRight(self._delete_recursive(node.getRight(), poder, cantidad))
         else:
+            # Reducir cantidad si es mayor a la que se desea eliminar
             if node.cantidad > cantidad:
                 node.setCantidad(node.cantidad - cantidad)
                 return node
+            # Si no hay hijo izquierdo
             if node.getLeft() is None:
                 return node.getRight()
+            # Si no hay hijo derecho
             if node.getRight() is None:
                 return node.getLeft()
+            # Encontrar sucesor y reemplazar
             successor = self._min_value_node(node.getRight())
             node.poder = successor.poder
-            node.nombre = successor.nombre
+            node.nombre = getattr(successor, "nombre", None)
             node.cantidad = successor.cantidad
             node.setRight(self._delete_recursive(node.getRight(), successor.poder, successor.cantidad))
         return node
 
+    # -------------------
+    # Método auxiliar
+    # -------------------
+    def _min_value_node(self, node):
+        """Devuelve el nodo con menor poder en el subárbol dado."""
+        current = node
+        while current.getLeft():
+            current = current.getLeft()
+        return current
+
+    # -------------------
+    # Recorridos
+    # -------------------
     def inorder(self) -> List[Node]:
         elements = []
         self._inorder_recursive(self.root, elements)
@@ -95,7 +112,6 @@ class Inventory(IInventory):
     # Métodos adicionales
     # -------------------
     def max_value(self) -> Optional[Node]:
-        """Devuelve la gema con mayor poder."""
         current = self.root
         if not current:
             return None
@@ -104,7 +120,6 @@ class Inventory(IInventory):
         return current
 
     def min_value(self) -> Optional[Node]:
-        """Devuelve la gema con menor poder."""
         current = self.root
         if not current:
             return None
@@ -113,7 +128,6 @@ class Inventory(IInventory):
         return current
 
     def successor(self, poder: int) -> Optional[Node]:
-        """Devuelve el sucesor de la gema con poder dado."""
         succ = None
         node = self.root
         while node:
@@ -125,7 +139,6 @@ class Inventory(IInventory):
         return succ
 
     def predecessor(self, poder: int) -> Optional[Node]:
-        """Devuelve el predecesor de la gema con poder dado."""
         pred = None
         node = self.root
         while node:

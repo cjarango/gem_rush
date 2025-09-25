@@ -112,3 +112,7 @@ class GameManager:
         
     def has_saved_inventory(self) -> bool:
         return self.inventory_manager.has_saved_inventory()
+    
+    def get_inventory_total_value(self) -> int:
+        """Devuelve el valor total del inventario del jugador."""
+        return self.inventory_manager.total_value()
