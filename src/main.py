@@ -1,6 +1,8 @@
 import pygame
 from controllers.screens import MenuScreen, GameScreen, GameOverScreen, WinScreen
 from controllers import GameManager, HUDController, MimicDecisionController
+from audio_manager import AudioManager
+import os
 
 # --------------------------
 # Configuración
@@ -10,12 +12,13 @@ CHUNK_SIZE = 21
 WIDTH, HEIGHT = 1000, 700
 COLOR_TEXT = (255, 255, 255)
 FPS = 120
-
+audio_manager = AudioManager()
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Progressive Maze Enhanced")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
+audio_manager = AudioManager()
 
 # --------------------------
 # Inicializar gestores

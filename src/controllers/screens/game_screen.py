@@ -1,12 +1,18 @@
 import pygame
 import random
+import os
 from resources.gem_data import GEM_NAMES
 from views.inventory_formatter import InventoryFormatter
 from controllers import GameManager, HUDController, MimicDecisionController
 from controllers.screens.pause_screen import PauseScreen
 from controllers.thief_event_controller import ThiefEventController
-
+from audio_manager import AudioManager
 class GameScreen:
+    screen: pygame.Surface
+    WIDTH: int
+    HEIGHT: int
+    TILE: int
+    
     def __init__(self, screen, game: GameManager, hud: HUDController,
                  mimic_controller: MimicDecisionController, change_screen_callback):
         self.screen = screen
@@ -14,7 +20,10 @@ class GameScreen:
         self.hud = hud
         self.mimic_controller = mimic_controller
         self.change_screen_callback = change_screen_callback
-
+        self.TILE = game.tile_size
+        self.WIDTH, self.HEIGHT = screen.get_size()
+        self.audio_manager = AudioManager()
+        self.audio_manager.load_and_play_music("src/audio/ambient.mp3")
         # Movimiento e inventario
         self.move_directions = {"up": 0, "down": 0, "left": 0, "right": 0}
         self.inventory_open = False
@@ -24,17 +33,25 @@ class GameScreen:
         self.current_portal_cost_text = ""
 
         # Configuración visual
-        self.TILE = game.tile_size
-        self.WIDTH, self.HEIGHT = screen.get_size()
         self.COLOR_PLAYER = (0, 255, 0)
         self.COLOR_BG = (0, 0, 0)
         self.COLOR_TEXT = (255, 255, 255)
         self.font = pygame.font.SysFont(None, 24)
-
+        
+        # --- SISTEMA DE SPRITES DEL JUGADOR ---
+        self.player_direction = "down"      # Última dirección
+        self.player_anim_index = 0
+        self.player_anim_timer_ms = 0
+        self._last_anim_tick = pygame.time.get_ticks()
+        self.PLAYER_ANIM_SPEED_MS = 200     # Cambia frame cada 200ms
+        
+        # Cargar sprites del jugador
+        self.player_sprites = self._load_player_sprites()
+        
         # Pausa
         self.is_paused = False
         self.pause_screen = PauseScreen(screen, self, change_screen_callback, game_manager=self.game)
-
+        
         # Evento ladrón
         self.thief_controller = ThiefEventController(
             player=game.player,
@@ -44,15 +61,132 @@ class GameScreen:
             height=self.HEIGHT
         )
 
-        # Posición anterior del jugador (para recalcular probabilidad solo al moverse)
+        # Posición anterior del jugador
         self.prev_player_pos = (game.player.x, game.player.y)
-
-        # Flag para evitar que el mimic sobrescriba mensajes de Game Over
         self.player_dead_by_thief = False
 
-    # ----------------------------
-    # Gestión de eventos
-    # ----------------------------
+    def _load_player_sprites(self):
+        """Carga todos los sprites del jugador desde archivos PNG"""
+        def load_sprite(path, fallback_color=(0, 255, 0)):
+            """Carga un sprite individual con fallback en caso de error"""
+            try:
+                if os.path.exists(path):
+                    img = pygame.image.load(path).convert_alpha()
+                    return pygame.transform.scale(img, (self.TILE, self.TILE))
+                else:
+                    print(f"Archivo no encontrado: {path}")
+            except pygame.error as e:
+                print(f"Error cargando sprite: {path} - {e}")
+            
+            # Fallback: crear sprite simple
+            surf = pygame.Surface((self.TILE, self.TILE), pygame.SRCALPHA)
+            surf.fill(fallback_color)
+            return surf
+
+        # Estructura de carpetas: textures/player/
+        base_path = os.path.join("textures", "player")
+        
+        sprites = {
+            "idle": {},
+            "walk": {"down": [], "up": [], "left": [], "right": []}
+        }
+
+        # Direcciones disponibles
+        directions = ["down", "up", "left", "right"]
+        
+        # Cargar sprites IDLE (estructura exacta de tus archivos)
+        print("Cargando sprites de idle...")
+        for direction in directions:
+            path = os.path.join(base_path, f"player_idle_{direction}.png")
+            sprites["idle"][direction] = load_sprite(path)
+            print(f"Cargado idle {direction}")
+
+        # Cargar sprites WALK (3 frames: 0, 1, 2 para cada dirección)
+        print("Cargando sprites de walk...")
+        for direction in directions:
+            frames = []
+            # Cargar exactamente 3 frames (0, 1, 2) según tu estructura
+            for frame_num in range(3):
+                path = os.path.join(base_path, f"player_walk_{direction}_{frame_num}.png")
+                frame_sprite = load_sprite(path)
+                frames.append(frame_sprite)
+                print(f"Cargado walk {direction} frame {frame_num}")
+            
+            sprites["walk"][direction] = frames
+
+        print(f"Sprites cargados completamente:")
+        for anim_type in sprites:
+            for direction in sprites[anim_type]:
+                if anim_type == "walk":
+                    print(f"  {anim_type} {direction}: {len(sprites[anim_type][direction])} frames")
+                else:
+                    print(f"  {anim_type} {direction}: OK")
+
+        return sprites
+
+    def _render_player(self):
+        """Renderiza el sprite animado del jugador en el centro de la pantalla"""
+        # Centro de la pantalla en coordenadas de tiles
+        tiles_x = self.WIDTH // self.TILE
+        tiles_y = self.HEIGHT // self.TILE
+
+        # Posición del jugador en pantalla (centrado)
+        player_screen_x = (tiles_x // 2) * self.TILE
+        player_screen_y = (tiles_y // 2) * self.TILE
+
+        # ¿Se está moviendo?
+        moving = any(self.move_directions.values())
+
+        # Actualizar dirección según teclas presionadas
+        if self.move_directions.get("right"):
+            self.player_direction = "right"
+        elif self.move_directions.get("left"):
+            self.player_direction = "left"
+        elif self.move_directions.get("down"):
+            self.player_direction = "down"
+        elif self.move_directions.get("up"):
+            self.player_direction = "up"
+
+        # Sistema de animación basado en tiempo
+        now = pygame.time.get_ticks()
+        dt = now - self._last_anim_tick
+        self._last_anim_tick = now
+
+        sprite = None
+
+        try:
+            if moving:
+                # Animación de caminar
+                self.player_anim_timer_ms += dt
+                if self.player_anim_timer_ms >= self.PLAYER_ANIM_SPEED_MS:
+                    self.player_anim_timer_ms = 0
+                    # Avanzar al siguiente frame
+                    walk_frames = self.player_sprites["walk"][self.player_direction]
+                    if len(walk_frames) > 0:
+                        self.player_anim_index = (self.player_anim_index + 1) % len(walk_frames)
+                
+                # Obtener sprite actual de walk
+                walk_frames = self.player_sprites["walk"][self.player_direction]
+                if len(walk_frames) > 0 and self.player_anim_index < len(walk_frames):
+                    sprite = walk_frames[self.player_anim_index]
+            else:
+                # Estado idle (sin movimiento)
+                self.player_anim_index = 0
+                self.player_anim_timer_ms = 0
+                sprite = self.player_sprites["idle"][self.player_direction]
+
+        except (KeyError, IndexError) as e:
+            print(f"Error accediendo a sprite del jugador: {e}")
+            sprite = None
+
+        # Dibujar el sprite del jugador
+        if sprite is not None:
+            self.screen.blit(sprite, (player_screen_x, player_screen_y))
+        else:
+            # Fallback: rectángulo verde simple
+            pygame.draw.rect(self.screen, self.COLOR_PLAYER, 
+                           (player_screen_x, player_screen_y, self.TILE, self.TILE))
+
     def handle_event(self, event):
         if self.is_paused:
             self.pause_screen.handle_event(event)
@@ -91,9 +225,6 @@ class GameScreen:
             elif key == pygame.K_a: self.move_directions["left"] = 0
             elif key == pygame.K_d: self.move_directions["right"] = 0
 
-    # ----------------------------
-    # Interacción con objetos
-    # ----------------------------
     def _interact(self):
         if self.thief_controller.active:
             return
@@ -115,9 +246,6 @@ class GameScreen:
             if result.get("success"):
                 self.change_screen_callback("win")
 
-    # ----------------------------
-    # Actualización del juego
-    # ----------------------------
     def update(self, dt: float):
         if self.is_paused:
             self.pause_screen.update(dt)
@@ -125,9 +253,7 @@ class GameScreen:
 
         self.hud.update(dt)
 
-        # ==============================
-        # Evento ladrón
-        # ==============================
+        # Gestión del evento ladrón
         if self.thief_controller.active:
             self.move_directions = {k:0 for k in self.move_directions}
             result = self.thief_controller.update()
@@ -182,16 +308,11 @@ class GameScreen:
             self._update_portal_in_range()
             self._update_mimic()
 
-            # -----------------------------
             # Comprobar si murió de otra forma (Mimic u otra)
-            # -----------------------------
             if not self.game.player.get_state() and not self.player_dead_by_thief:
                 message = getattr(self, 'last_death_message', "You have met your fate!")
                 self.change_screen_callback("game_over", game_over_message=message)
 
-    # -----------------------------
-    # Movimiento del jugador
-    # -----------------------------
     def _update_player_movement(self, dt):
         dx = self.move_directions["right"] - self.move_directions["left"]
         dy = self.move_directions["down"] - self.move_directions["up"]
@@ -201,9 +322,6 @@ class GameScreen:
             if gem_value:
                 self.hud.add_message(f"Collected {GEM_NAMES.get(gem_value, f'Gem {gem_value}')}!", duration_seconds=2.0)
 
-    # -----------------------------
-    # Evento trampa
-    # -----------------------------
     def _check_trap(self):
         inv = self.game.player.inventory
         if not inv.root:
@@ -223,9 +341,6 @@ class GameScreen:
                     duration_seconds=3.0
                 )
 
-    # -----------------------------
-    # Chequeo de cofres y portales
-    # -----------------------------
     def _update_chest_in_range(self):
         self.current_chest_in_range = None
         self.current_cost_text = ""
@@ -256,9 +371,6 @@ class GameScreen:
                         self.current_portal_cost_text = ", ".join(f"{c}x {GEM_NAMES.get(g, g)}" for g, c in cost.items())
                     return
 
-    # -----------------------------
-    # Mimic
-    # -----------------------------
     def _update_mimic(self):
         # Evitamos que mimic sobrescriba mensaje de Game Over por ladrón
         if self.player_dead_by_thief:
@@ -272,10 +384,7 @@ class GameScreen:
             # Guardamos mensaje de muerte en caso de que el Mimic mate al jugador
             if result.get("result") == "killed":
                 self.last_death_message = result["message"]
-                
-    # -----------------------------
-    # Renderizado
-    # -----------------------------
+
     def render(self):
         self.screen.fill(self.COLOR_BG)
         self.screen.blit(
@@ -309,11 +418,6 @@ class GameScreen:
                     color = self.game.gem_manager.get_gem_color(gem_value)
                     pygame.draw.circle(self.screen, color,
                                        (sx*self.TILE+self.TILE//2, sy*self.TILE+self.TILE//2), self.TILE//4)
-
-    def _render_player(self):
-        tiles_x, tiles_y = self.WIDTH//self.TILE, self.HEIGHT//self.TILE
-        pygame.draw.rect(self.screen, self.COLOR_PLAYER,
-                         (tiles_x//2*self.TILE, tiles_y//2*self.TILE, self.TILE, self.TILE))
 
     def _render_hud(self):
         self.hud.draw_floating_messages()

@@ -1,13 +1,14 @@
 import pygame
 from controllers.screens.screen_base import ScreenBase
-
+from audio_manager import AudioManager
 
 class MenuScreen(ScreenBase):
     def __init__(self, screen, change_screen_callback, game_manager):
         super().__init__(screen)
         self.change_screen_callback = change_screen_callback
         self.game_manager = game_manager
-
+        self.audio_manager = AudioManager()
+        self.audio_manager.stop_music()
         # Opciones de menú
         self.options = ["Nuevo Juego", "Continuar", "Salir"]
         self.selected_index = 0
