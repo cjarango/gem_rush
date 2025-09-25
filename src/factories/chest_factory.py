@@ -15,7 +15,7 @@ class ChestFactory:
     - Los mimics tienen un costo adicional (`mimic_cost`) más alto.
     """
 
-    def __init__(self, drop_prob: float = 0.5, large_chest_prob: float = 0.05, mimic_prob: float = 0.3):
+    def __init__(self, drop_prob: float = 0.5, large_chest_prob: float = 0.05, mimic_prob: float = 0.9):
         self.loot_factory = GemLootFactory(drop_prob)
         self.large_chest_prob = large_chest_prob
         self.mimic_prob = mimic_prob
