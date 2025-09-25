@@ -7,10 +7,11 @@ class GemLootFactory:
     """
     Fábrica que genera loot en forma de gemas.
     Cada gema tiene chance de caer, con cantidad aleatoria.
+    La probabilidad depende del poder de la gema: más poder = más rara.
     """
 
-    def __init__(self, drop_prob: float = 0.5):
-        self.drop_prob = drop_prob
+    def __init__(self, base_drop_prob: float = 0.5):
+        self.base_drop_prob = base_drop_prob
 
     def generate_loot(self) -> List[Tuple[int, str, int]]:
         """
@@ -18,7 +19,12 @@ class GemLootFactory:
         """
         loot: List[Tuple[int, str, int]] = []
         for poder, name in GEM_NAMES.items():
-            if random.random() < self.drop_prob:
-                cantidad = random.randint(1, 5)
+            # Escalamos probabilidad según el poder
+            prob = self.base_drop_prob / (poder / 5)  
+            # Ejemplo: poder=5 → prob=0.5, poder=50 → prob=0.05
+            if random.random() < prob:
+                # Cantidad también puede escalar inversamente: gemas raras salen de a 1
+                max_cantidad = max(1, 6 - (poder // 10))
+                cantidad = random.randint(1, max_cantidad)
                 loot.append((poder, name, cantidad))
         return loot

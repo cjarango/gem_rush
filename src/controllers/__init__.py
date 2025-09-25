@@ -5,6 +5,7 @@ from controllers.chest_controller import ChestController
 from controllers.game_manager import GameManager
 from controllers.mimic_decision_controller import MimicDecisionController
 from controllers.hud_controller import HUDController
+from controllers.portal_controller import PortalController
 
 __all__ = [
     "PlayerMovementController",
@@ -12,5 +13,6 @@ __all__ = [
     "ChestController",
     "GameManager",
     "MimicDecisionController",
-    "HUDController"
+    "HUDController",
+    "PortalController"
 ]

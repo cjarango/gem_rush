@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any
 from core.interfaces import IChest
 from core.interfaces import IInventory
 

@@ -1,5 +1,5 @@
 import pygame
-from controllers.screens import MenuScreen, GameScreen, GameOverScreen
+from controllers.screens import MenuScreen, GameScreen, GameOverScreen, WinScreen
 from controllers import GameManager, HUDController, MimicDecisionController
 
 # --------------------------
@@ -38,6 +38,8 @@ def change_screen(screen_name):
         current_screen = GameScreen(screen, game_manager, hud, mimic_controller, change_screen)
     elif screen_name == "game_over":
         current_screen = GameOverScreen(screen, change_screen)
+    elif screen_name == "win":
+        current_screen = WinScreen(screen, change_screen)
     elif screen_name == "restart_game":
         # --- RESET GAME ---
         game_manager.reset_game()
@@ -62,7 +64,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         else:
-            # Enviar eventos a GameScreen, que maneja pausa internamente
+            # Enviar eventos a la pantalla actual
             if hasattr(current_screen, "is_paused") and current_screen.is_paused:
                 current_screen.pause_screen.handle_event(event)
             else:

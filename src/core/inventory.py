@@ -27,7 +27,7 @@ class Inventory(IInventory):
             current.setLeft(self._insert_recursive(current.getLeft(), poder, cantidad))
         elif poder > current.poder:
             current.setRight(self._insert_recursive(current.getRight(), poder, cantidad))
-        else:  # Ya existe nodo, sumamos cantidad
+        else:
             current.setCantidad(current.getCantidad() + cantidad)
         return current
 
@@ -79,22 +79,59 @@ class Inventory(IInventory):
             self._inorder_recursive(node.getLeft(), elements)
             elements.append(node)
             self._inorder_recursive(node.getRight(), elements)
-    
-    def _min_value_node(self, node):
-        current = node
-        while current.getLeft():
-            current = current.getLeft()
-        return current
-    
+
     def preorder(self) -> List[str]:
-        """Devuelve los nodos en preorden en formato 'power;quantity'."""
         result = []
         self._preorder_recursive(self.root, result)
         return result
 
     def _preorder_recursive(self, node, result: List[str]):
         if node:
-            # Guardamos el nodo en formato "power;quantity"
             result.append(f"{node.poder};{node.getCantidad()}")
             self._preorder_recursive(node.getLeft(), result)
             self._preorder_recursive(node.getRight(), result)
+
+    # -------------------
+    # Métodos adicionales
+    # -------------------
+    def max_value(self) -> Optional[Node]:
+        """Devuelve la gema con mayor poder."""
+        current = self.root
+        if not current:
+            return None
+        while current.getRight():
+            current = current.getRight()
+        return current
+
+    def min_value(self) -> Optional[Node]:
+        """Devuelve la gema con menor poder."""
+        current = self.root
+        if not current:
+            return None
+        while current.getLeft():
+            current = current.getLeft()
+        return current
+
+    def successor(self, poder: int) -> Optional[Node]:
+        """Devuelve el sucesor de la gema con poder dado."""
+        succ = None
+        node = self.root
+        while node:
+            if poder < node.poder:
+                succ = node
+                node = node.getLeft()
+            else:
+                node = node.getRight()
+        return succ
+
+    def predecessor(self, poder: int) -> Optional[Node]:
+        """Devuelve el predecesor de la gema con poder dado."""
+        pred = None
+        node = self.root
+        while node:
+            if poder > node.poder:
+                pred = node
+                node = node.getRight()
+            else:
+                node = node.getLeft()
+        return pred

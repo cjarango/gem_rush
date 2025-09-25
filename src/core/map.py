@@ -2,8 +2,10 @@ import random
 from collections import defaultdict
 from views.sprites.tile_sprite_factory import TileSpriteFactory
 from views.sprites.chest_sprite_factory import ChestSpriteFactory
+from views.sprites.portal_sprite_factory import PortalSpriteFactory
 from core.managers.gem_manager import GemManager
 from core.managers.chest_manager import ChestManager
+from core.managers.portal_manager import PortalManager
 from generators.chunk_generator import ChunkGenerator
 
 class Map:
@@ -23,12 +25,14 @@ class Map:
         # ====================
         self.tile_sprite_factory = TileSpriteFactory(tile_size, num_tree_variants)
         self.chest_sprite_factory = ChestSpriteFactory(tile_size)
+        self.portal_sprite_factory = PortalSpriteFactory(tile_size)
 
         # ====================
         # Managers
         # ====================
         self.gem_manager = GemManager(self.chunk_size)
         self.chest_manager = ChestManager(self.chunk_size)
+        self.portal_manager = PortalManager(self.chunk_size)
 
         # ====================
         # Generador de Chunks
@@ -58,11 +62,18 @@ class Map:
         return tile if tile else ("TREE", 0)
 
     def get_sprite(self, x, y):
+        # Cofres
         chest = self.get_chest(x, y)
         if chest:
-            # Usamos la interfaz IChest
             return self.chest_sprite_factory.get_sprite(chest)
 
+        # Portal
+        portal, _ = self.get_portal(x, y)
+        if portal:
+            # Obtenemos el sprite desde el factory
+            return self.portal_sprite_factory.get_sprite(portal)
+
+        # Tile normal
         tile = self.get_tile(x, y)
         if tile[0] == "TREE":
             variant = self.get_tree_variant(x, y)
@@ -72,7 +83,7 @@ class Map:
         return self.tile_sprite_factory.get_sprite("GRASS")
 
     # ====================
-    # Gestión de gemas y cofres
+    # Gemas y cofres
     # ====================
     def get_gem(self, x, y):
         chunk_x, chunk_y = self.get_chunk_key(x, y)
@@ -96,6 +107,19 @@ class Map:
         return None
 
     # ====================
+    # Portales
+    # ====================
+    def get_portal(self, x, y):
+        chunk_x, chunk_y = self.get_chunk_key(x, y)
+        portal_info = self.portal_manager.get_portal_info(chunk_x, chunk_y)
+        if portal_info:
+            lx, ly, portal = portal_info
+            if (x % self.chunk_size, y % self.chunk_size) == (lx, ly):
+                global_x, global_y = chunk_x*self.chunk_size + lx, chunk_y*self.chunk_size + ly
+                return portal, (global_x, global_y)
+        return None, None
+
+    # ====================
     # Métodos auxiliares y chunks
     # ====================
     def get_chunk_key(self, x, y):
@@ -109,12 +133,12 @@ class Map:
             self.chunks[chunk_y][chunk_x] = chunk
             self.generated_chunks.add(key)
 
-            # Colocamos gemas y cofres
+            # Colocamos gemas, cofres y portales
             self.gem_manager.place_gems_in_chunk(chunk_x, chunk_y, chunk)
             self.chest_manager.place_chests_in_chunk(chunk_x, chunk_y, chunk)
-            
+            self.portal_manager.try_spawn_portal(chunk_x, chunk_y, chunk)
+
     def is_clearing_chunk(self, chunk):
-        # Chequeamos si el chunk es clearing
         return all(tile[0] == "CLEAR" for row in chunk for tile in row)
 
     # ====================
@@ -134,4 +158,4 @@ class Map:
         return self.tree_variant_map[key]
 
     def is_blocked(self, x, y):
-        return self.is_wall(x, y) or self.get_chest(x, y) is not None
+        return self.is_wall(x, y) or self.get_chest(x, y) is not None or self.get_portal(x, y)[0] is not None
