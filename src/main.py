@@ -33,7 +33,7 @@ current_screen = None
 def change_screen(screen_name):
     global current_screen, game_manager
     if screen_name == "menu":
-        current_screen = MenuScreen(screen, change_screen)
+        current_screen = MenuScreen(screen, change_screen, game_manager)
     elif screen_name == "game":
         current_screen = GameScreen(screen, game_manager, hud, mimic_controller, change_screen)
     elif screen_name == "game_over":
@@ -62,16 +62,27 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         else:
-            current_screen.handle_event(event)
+            # Enviar eventos a GameScreen, que maneja pausa internamente
+            if hasattr(current_screen, "is_paused") and current_screen.is_paused:
+                current_screen.pause_screen.handle_event(event)
+            else:
+                current_screen.handle_event(event)
 
-    # Actualizar lógica de la pantalla actual
-    current_screen.update(dt)
+    # Actualizar
+    if hasattr(current_screen, "is_paused") and current_screen.is_paused:
+        current_screen.pause_screen.update(dt)
+    else:
+        current_screen.update(dt)
+
+        # Comprobar Game Over
+        if hasattr(current_screen, "game") and not current_screen.game.player.get_state():
+            change_screen("game_over")
 
     # Renderizar
-    current_screen.render()
-
-    # Comprobar si Game Over (solo para GameScreen)
-    if hasattr(current_screen, "game") and not current_screen.game.player.get_state():
-        change_screen("game_over")
+    if hasattr(current_screen, "is_paused") and current_screen.is_paused:
+        # Renderiza el juego de fondo y encima la pausa
+        current_screen.render()
+    else:
+        current_screen.render()
 
 pygame.quit()

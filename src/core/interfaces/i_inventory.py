@@ -24,3 +24,6 @@ class IInventory(Protocol):
     def inorder(self) -> List[Node]:
         """Devuelve los nodos en orden ascendente según poder."""
         ...
+        
+    def preorder(self) -> List[Node]:
+        ...

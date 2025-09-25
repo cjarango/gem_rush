@@ -85,3 +85,16 @@ class Inventory(IInventory):
         while current.getLeft():
             current = current.getLeft()
         return current
+    
+    def preorder(self) -> List[str]:
+        """Devuelve los nodos en preorden en formato 'power;quantity'."""
+        result = []
+        self._preorder_recursive(self.root, result)
+        return result
+
+    def _preorder_recursive(self, node, result: List[str]):
+        if node:
+            # Guardamos el nodo en formato "power;quantity"
+            result.append(f"{node.poder};{node.getCantidad()}")
+            self._preorder_recursive(node.getLeft(), result)
+            self._preorder_recursive(node.getRight(), result)

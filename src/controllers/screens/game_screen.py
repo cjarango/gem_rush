@@ -2,6 +2,7 @@ import pygame
 from resources.gem_data import GEM_NAMES
 from views.inventory_formatter import InventoryFormatter
 from controllers import GameManager, HUDController, MimicDecisionController
+from controllers.screens.pause_screen import PauseScreen
 
 class GameScreen:
     def __init__(self, screen, game: GameManager, hud: HUDController, mimic_controller: MimicDecisionController, change_screen_callback):
@@ -23,12 +24,20 @@ class GameScreen:
         self.COLOR_TEXT = (255, 255, 255)
         self.font = pygame.font.SysFont(None, 24)
 
+        # Estado de pausa
+        self.is_paused = False
+        self.pause_screen = PauseScreen(screen, self, change_screen_callback, game_manager=self.game)
+
     def handle_event(self, event):
+        if self.is_paused:
+            self.pause_screen.handle_event(event)
+            return
+
         if event.type == pygame.QUIT:
             self.change_screen_callback("quit")
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                self.change_screen_callback("quit")
+                self.is_paused = True  # activamos pausa
             elif event.key == pygame.K_w: self.move_directions["up"] = 1
             elif event.key == pygame.K_s: self.move_directions["down"] = 1
             elif event.key == pygame.K_a: self.move_directions["left"] = 1
@@ -48,7 +57,11 @@ class GameScreen:
         self.mimic_controller.handle_event(event)
 
     def update(self, dt: float):
-        # Actualizamos HUD para que los mensajes desaparezcan
+        if self.is_paused:
+            self.pause_screen.update(dt)
+            return
+
+        # Actualizamos HUD
         self.hud.update(dt)
 
         # Movimiento del jugador
@@ -60,7 +73,7 @@ class GameScreen:
             if gem_value:
                 self.hud.add_message(f"Collected {GEM_NAMES.get(gem_value, f'Gema {gem_value}')}!", duration_seconds=2.0)
 
-        # Cofre cercano
+        # Cofres
         self.current_chest_in_range = None
         self.current_cost_text = ""
         for dx_c in [-1,0,1]:
@@ -84,8 +97,12 @@ class GameScreen:
             self.hud.add_message(result["message"], duration_seconds=3.0)
 
     def render(self):
+        # Render normal del juego
         self.screen.fill(self.COLOR_BG)
-        self.screen.blit(self.font.render("TAB: Inventory | E: Open Chest", True, self.COLOR_TEXT), (10,10))
+        self.screen.blit(
+            self.font.render("TAB: Inventory | E: Open Chest | ESC: Pause", True, self.COLOR_TEXT),
+            (10, 10)
+        )
 
         tiles_x, tiles_y = self.WIDTH//self.TILE, self.HEIGHT//self.TILE
         start_x, start_y = self.game.player.x - tiles_x//2, self.game.player.y - tiles_y//2
@@ -106,4 +123,9 @@ class GameScreen:
         self.hud.draw_chest_cost(self.current_cost_text)
         self.hud.draw_inventory(self.game.player.inventory, self.inventory_open, InventoryFormatter)
         self.mimic_controller.draw()
+
+        # Render de pausa encima si está pausado
+        if self.is_paused:
+            self.pause_screen.render()
+
         pygame.display.flip()
