@@ -1,6 +1,7 @@
 import pygame
 import os
 from controllers.screens.screen_base import ScreenBase
+from audio_manager import AudioManager  # Cambio remoto
 
 class MenuScreen(ScreenBase):
     def __init__(self, screen, change_screen_callback, game_manager):
@@ -8,32 +9,36 @@ class MenuScreen(ScreenBase):
         self.change_screen_callback = change_screen_callback
         self.game_manager = game_manager
 
-        # --- Opciones de menú (en inglés) ---
+        # AudioManager del remoto
+        self.audio_manager = AudioManager()
+        self.audio_manager.stop_music()
+
+        # --- Menu options ---
         self.options = ["New Game", "Continue", "Exit"]
         self.selected_index = 0
 
-        # --- Fuentes y colores ---
+        # --- Fonts and colors ---
         self.font = pygame.font.SysFont("Arial", 36)
         self.active_color = (255, 255, 255)
         self.inactive_color = (200, 200, 200)
         self.disabled_color = (100, 100, 100)
-        self.highlight_bg = (50, 50, 50)  # Color base del hover
+        self.highlight_bg = (50, 50, 50)  # Base color for hover
 
-        # --- Posición inicial de las opciones ---
-        self.start_x = 150  # mover a la derecha
-        self.start_y = 320  # bajar un poco
-        self.line_height = 70  # aumentar un poco el espacio entre opciones
+        # --- Initial positions ---
+        self.start_x = 150
+        self.start_y = 320
+        self.line_height = 70
 
-        # --- Animación de hover ---
+        # --- Hover animation ---
         self.current_y = self.start_y
         self.target_y = self.start_y
         self.animation_speed = 15
 
-        # --- Estado ventana de error ---
+        # --- Error window state ---
         self.error_message = None
         self.error_timer = 0
 
-        # --- Cargar imagen de fondo ---
+        # --- Load background image ---
         BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
         TEXTURE_DIR = os.path.join(BASE_DIR, "textures")
         background_path = os.path.join(TEXTURE_DIR, "menu_wall.jpg")
@@ -104,10 +109,10 @@ class MenuScreen(ScreenBase):
             self.current_y = max(self.current_y - self.animation_speed, self.target_y)
 
     def render(self):
-        # --- Dibujar fondo ---
+        # --- Draw background ---
         self.screen.blit(self.background_image, (0, 0))
 
-        # --- Dibujar opciones del menú ---
+        # --- Draw menu options ---
         for i, option in enumerate(self.options):
             if option == "Continue" and not self.game_manager.has_saved_inventory():
                 color = self.disabled_color
@@ -116,18 +121,16 @@ class MenuScreen(ScreenBase):
             else:
                 color = self.inactive_color
 
-            # Texto ligeramente desplazado para centrar en el hover
             text_surface = self.font.render(option, True, color)
             text_rect = text_surface.get_rect(
                 topleft=(self.start_x + 10, self.start_y + i * self.line_height + 5)
             )
 
-            # Hover semitransparente más transparente
             if i == self.selected_index and not (option == "Continue" and not self.game_manager.has_saved_inventory()):
                 highlight_rect = text_rect.copy()
                 highlight_rect.inflate_ip(20, 10)
                 hover_surface = pygame.Surface((highlight_rect.width, highlight_rect.height), pygame.SRCALPHA)
-                hover_surface.fill((50, 50, 50, 100))  # Alpha más bajo = más transparente
+                hover_surface.fill((50, 50, 50, 100))
                 self.screen.blit(hover_surface, highlight_rect.topleft)
 
             self.screen.blit(text_surface, text_rect)
