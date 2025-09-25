@@ -13,7 +13,7 @@ FPS = 120
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Progressive Maze Enhanced")
+pygame.display.set_caption("Gem Rush")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
 

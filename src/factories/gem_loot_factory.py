@@ -16,15 +16,20 @@ class GemLootFactory:
     def generate_loot(self) -> List[Tuple[int, str, int]]:
         """
         Retorna lista de tuplas: (poder, nombre, cantidad).
+        Garantiza al menos una gema.
         """
         loot: List[Tuple[int, str, int]] = []
         for poder, name in GEM_NAMES.items():
-            # Escalamos probabilidad según el poder
-            prob = self.base_drop_prob / (poder / 5)  
-            # Ejemplo: poder=5 → prob=0.5, poder=50 → prob=0.05
+            prob = self.base_drop_prob / (poder / 5)
             if random.random() < prob:
-                # Cantidad también puede escalar inversamente: gemas raras salen de a 1
                 max_cantidad = max(1, 6 - (poder // 10))
                 cantidad = random.randint(1, max_cantidad)
                 loot.append((poder, name, cantidad))
+
+        # Garantizar al menos una gema
+        if not loot:
+            poder, name = random.choice(list(GEM_NAMES.items()))
+            cantidad = 1
+            loot.append((poder, name, cantidad))
+
         return loot

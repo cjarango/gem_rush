@@ -44,7 +44,7 @@ class GameScreen:
             height=self.HEIGHT
         )
 
-        # Posición anterior del jugador (para recalcular probabilidad solo al moverse)
+        # Posición anterior del jugador
         self.prev_player_pos = (game.player.x, game.player.y)
 
         # Flag para evitar que el mimic sobrescriba mensajes de Game Over
@@ -168,7 +168,7 @@ class GameScreen:
                 # Probabilidad de ladrón
                 total = self.game.get_inventory_total_value()
                 k_thief = 0.00005
-                chance_thief = min(total * k_thief, 0.05)
+                chance_thief = min(total * k_thief, 0.02)
                 if random.random() < chance_thief:
                     self.thief_controller.start_event(duration_frames=600)
                     self.move_directions = {k:0 for k in self.move_directions}
@@ -183,7 +183,7 @@ class GameScreen:
             self._update_mimic()
 
             # -----------------------------
-            # Comprobar si murió de otra forma (Mimic u otra)
+            # Comprobar si murió de otra forma
             # -----------------------------
             if not self.game.player.get_state() and not self.player_dead_by_thief:
                 message = getattr(self, 'last_death_message', "You have met your fate!")
@@ -253,14 +253,15 @@ class GameScreen:
                     self.current_portal_in_range = portal
                     cost = portal.get_activation_cost()
                     if cost:
-                        self.current_portal_cost_text = ", ".join(f"{c}x {GEM_NAMES.get(g, g)}" for g, c in cost.items())
+                        self.current_portal_cost_text = ", ".join(
+                            f"{c}x {GEM_NAMES.get(g, g)}" for g, c in cost.items()
+                        )
                     return
 
     # -----------------------------
     # Mimic
     # -----------------------------
     def _update_mimic(self):
-        # Evitamos que mimic sobrescriba mensaje de Game Over por ladrón
         if self.player_dead_by_thief:
             return
 
@@ -269,10 +270,9 @@ class GameScreen:
             fight = mimic_result["choice"] == "fight"
             result = self.game.open_chest(mimic_result["chest"], fight=fight)
             self.hud.add_message(result["message"], duration_seconds=3.0)
-            # Guardamos mensaje de muerte en caso de que el Mimic mate al jugador
             if result.get("result") == "killed":
                 self.last_death_message = result["message"]
-                
+
     # -----------------------------
     # Renderizado
     # -----------------------------
@@ -294,26 +294,27 @@ class GameScreen:
         pygame.display.flip()
 
     def _render_map(self):
-        tiles_x, tiles_y = self.WIDTH//self.TILE, self.HEIGHT//self.TILE
-        start_x = self.game.player.x - tiles_x//2
-        start_y = self.game.player.y - tiles_y//2
+        tiles_x, tiles_y = self.WIDTH // self.TILE, self.HEIGHT // self.TILE
+        start_x = self.game.player.x - tiles_x // 2
+        start_y = self.game.player.y - tiles_y // 2
 
-        for sy in range(tiles_y+1):
-            for sx in range(tiles_x+1):
-                mx, my = start_x+sx, start_y+sy
+        for sy in range(tiles_y + 1):
+            for sx in range(tiles_x + 1):
+                mx, my = start_x + sx, start_y + sy
                 sprite = self.game.game_map.get_sprite(mx, my)
-                self.screen.blit(sprite, (sx*self.TILE, sy*self.TILE))
+                self.screen.blit(sprite, (sx * self.TILE, sy * self.TILE))
 
                 gem_value = self.game.game_map.get_gem(mx, my)
                 if gem_value is not None:
                     color = self.game.gem_manager.get_gem_color(gem_value)
                     pygame.draw.circle(self.screen, color,
-                                       (sx*self.TILE+self.TILE//2, sy*self.TILE+self.TILE//2), self.TILE//4)
+                                       (sx * self.TILE + self.TILE // 2, sy * self.TILE + self.TILE // 2),
+                                       self.TILE // 4)
 
     def _render_player(self):
-        tiles_x, tiles_y = self.WIDTH//self.TILE, self.HEIGHT//self.TILE
+        tiles_x, tiles_y = self.WIDTH // self.TILE, self.HEIGHT // self.TILE
         pygame.draw.rect(self.screen, self.COLOR_PLAYER,
-                         (tiles_x//2*self.TILE, tiles_y//2*self.TILE, self.TILE, self.TILE))
+                         (tiles_x // 2 * self.TILE, tiles_y // 2 * self.TILE, self.TILE, self.TILE))
 
     def _render_hud(self):
         self.hud.draw_floating_messages()
@@ -322,3 +323,4 @@ class GameScreen:
             self.hud.draw_chest_cost(self.current_portal_cost_text)
         self.hud.draw_inventory(self.game.player.inventory, self.inventory_open, InventoryFormatter)
         self.mimic_controller.draw()
+

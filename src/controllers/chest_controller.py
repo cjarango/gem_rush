@@ -8,6 +8,7 @@ class ChestController:
         self.player = player
         self.chest = chest
         self.mimic_controller = mimic_controller
+        self.decision_active = False  # Nuevo flag para controlar bloqueo de movimiento
 
     def try_open(self, fight: bool = None) -> dict:
         if self.chest.is_opened():
@@ -24,10 +25,13 @@ class ChestController:
             if fight is None:
                 if self.mimic_controller:
                     self.mimic_controller.start_decision(self.chest)
+                    self.decision_active = True  # Activamos bloqueo de movimiento
                     return {"success": None, "message": "Mimic decision started"}
                 else:
                     return {"success": False, "message": "Mimic controller missing", "items": []}
 
+            # Se resuelve la decisión: liberamos flag
+            self.decision_active = False
             if fight:
                 if random.random() < 0.9:
                     self.player.die()
@@ -59,3 +63,9 @@ class ChestController:
             self.player.inventory.insert(poder, cantidad)
         self.chest.mark_opened()
         return {"success": True, "message": f"Obtained {len(contents)} gem types", "items": contents}
+
+    # -----------------------------
+    # Getter para saber si hay decisión activa
+    # -----------------------------
+    def is_decision_active(self) -> bool:
+        return self.decision_active

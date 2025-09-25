@@ -35,15 +35,22 @@ class ChestFactory:
             poder, _, cantidad = random.choice(contents)
             factor = random.uniform(0.8, 1.5) if is_large else random.uniform(0.5, 1.0)
             open_cost[poder] = max(1, int(cantidad * factor))
+        else:
+            # Cofre vacío, asignar costo mínimo
+            open_cost[1] = 1
 
         # -------------------
         # mimic_cost (solo si es mimic)
         # -------------------
         mimic_cost = {}
-        if is_mimic and contents:
-            poder, _, cantidad = random.choice(contents)
-            factor = random.uniform(1.5, 2.5)  # más alto que open_cost
-            mimic_cost[poder] = max(1, int(cantidad * factor))
+        if is_mimic:
+            if contents:
+                poder, _, cantidad = random.choice(contents)
+                factor = random.uniform(1.5, 2.5)
+                mimic_cost[poder] = max(1, int(cantidad * factor))
+            else:
+                # Cofre vacío, asignar costo mínimo
+                mimic_cost[1] = 2
 
         # Crear cofre
         chest: IChest = Chest(contents, open_cost, mimic_cost, is_mimic)
